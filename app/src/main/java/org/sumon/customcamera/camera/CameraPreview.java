@@ -1,10 +1,11 @@
-package org.sumon.customcamera;
+package org.sumon.customcamera.camera;
 
 /**
  * Created by SumOn on 20,May,2020
  */
 
 import android.content.Context;
+import android.graphics.ImageFormat;
 import android.hardware.Camera;
 import android.hardware.Camera.Parameters;
 import android.util.Log;
@@ -12,6 +13,7 @@ import android.view.SurfaceHolder;
 import android.view.SurfaceView;
 
 import java.io.IOException;
+import java.util.List;
 
 /**
  * A basic Camera preview class
@@ -34,8 +36,33 @@ public class CameraPreview extends SurfaceView implements SurfaceHolder.Callback
         try {
             mCamera.setPreviewDisplay(holder);
             mCamera.setDisplayOrientation(90);
+
             Parameters parameters = mCamera.getParameters();
-            parameters.setFocusMode(Camera.Parameters.FOCUS_MODE_MACRO);
+            // sett focus
+            Log.d(TAG, "surfaceCreated: " + parameters.getSupportedFocusModes());
+            if (parameters.getSupportedFocusModes().contains(Parameters.FOCUS_MODE_CONTINUOUS_PICTURE)) {
+                parameters.setFocusMode(Camera.Parameters.FOCUS_MODE_CONTINUOUS_PICTURE);
+            }
+            //
+            Camera.Size bestSize;
+            List<Camera.Size> sizeList = parameters.getSupportedPreviewSizes();
+            bestSize = sizeList.get(0);
+            for (int i = 1; i < sizeList.size(); i++) {
+                if ((sizeList.get(i).width * sizeList.get(i).height) > (bestSize.width * bestSize.height)) {
+                    bestSize = sizeList.get(i);
+                }
+            }
+
+            List<Integer> supportedPreviewFormats = parameters.getSupportedPreviewFormats();
+            for (Integer previewFormat : supportedPreviewFormats) {
+                if (previewFormat == ImageFormat.YV12) {
+                    parameters.setPreviewFormat(previewFormat);
+                }
+            }
+
+            parameters.setPreviewSize(bestSize.width, bestSize.height);
+            parameters.setPictureSize(bestSize.width, bestSize.height);
+
             mCamera.setParameters(parameters);
             mCamera.startPreview();
         } catch (IOException e) {
